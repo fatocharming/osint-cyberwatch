@@ -3,61 +3,57 @@ from urllib.parse import urlparse
 
 def get_http_headers(url):
     """
-    Fetches and returns the HTTP headers of a given URL.
+    Fetches and displays HTTP headers for a given URL.
     
-    Parameters:
-        url (str): The URL to fetch headers from.
+    Args:
+        url (str): The target URL to analyze.
         
     Returns:
-        dict: A dictionary of the HTTP headers.
+        dict: HTTP headers retrieved from the response.
     """
     try:
         response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
         return response.headers
-    except requests.RequestException as e:
-        print(f"Error fetching headers for {url}: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching headers from {url}: {e}")
         return None
 
 def analyze_headers(headers):
     """
-    Analyzes given HTTP headers and extracts key information.
+    Analyzes the HTTP headers and prints out important information.
     
-    Parameters:
+    Args:
         headers (dict): The HTTP headers to analyze.
-        
-    Returns:
-        dict: A dictionary containing interesting header information.
     """
-    analysis = {}
-    analysis['Content-Type'] = headers.get('Content-Type', 'N/A')
-    analysis['Server'] = headers.get('Server', 'N/A')
-    analysis['Cache-Control'] = headers.get('Cache-Control', 'N/A')
-    analysis['X-Content-Type-Options'] = headers.get('X-Content-Type-Options', 'N/A')
-    return analysis
+    print("\n=== HTTP Headers Analysis ===")
+    
+    # Check for common security headers
+    security_headers = ['X-Content-Type-Options', 'X-Frame-Options', 'Content-Security-Policy']
+    for header in security_headers:
+        if header in headers:
+            print(f"{header}: {headers[header]}")
+        else:
+            print(f"{header}: NOT PRESENT")
+    
+    # Print server information
+    server_info = headers.get('Server', 'No Server Header')
+    print(f"Server: {server_info}")
 
 def main():
-    """
-    Main function to execute the OSINT tool.
-    It takes user input for a URL, fetches headers, and analyzes them.
-    """
-    url = input("Enter a URL (starting with http:// or https://): ")
+    # Input URL from the user
+    url = input("Enter a URL (e.g., http://example.com): ").strip()
     
-    # Validate URL format
+    # Parse the URL to ensure it's valid
     parsed_url = urlparse(url)
-    if not all([parsed_url.scheme, parsed_url.netloc]):
+    if not parsed_url.scheme or not parsed_url.netloc:
         print("Invalid URL. Please include 'http://' or 'https://'.")
         return
-    
+
+    # Get and analyze HTTP headers
     headers = get_http_headers(url)
     if headers:
-        print("\n=== HTTP Headers ===")
-        for key, value in headers.items():
-            print(f"{key}: {value}")
-        
-        print("\n=== Header Analysis ===")
-        analysis = analyze_headers(headers)
-        for key, value in analysis.items():
-            print(f"{key}: {value}")
+        analyze_headers(headers)
 
 if __name__ == "__main__":
     main()
